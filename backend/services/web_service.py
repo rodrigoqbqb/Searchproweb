@@ -4,6 +4,7 @@ import re
 import random
 import html
 import urllib.parse
+import base64
 from typing import List, Dict
 
 class WebSearchService:
@@ -56,6 +57,19 @@ class WebSearchService:
                             link = "https:" + link
                         elif link.startswith("/"):
                             link = "https://www.bing.com" + link
+                            
+                        # Extrai a URL oficial de links de rastreio do Bing (ck/a?!)
+                        if "bing.com/ck/a" in link:
+                            try:
+                                parsed = urllib.parse.urlparse(link)
+                                qs = urllib.parse.parse_qs(parsed.query)
+                                u_param = qs.get("u", [""])[0]
+                                if u_param.startswith("a1"):
+                                    b64 = u_param[2:]
+                                    b64 += "=" * (-len(b64) % 4)
+                                    link = base64.urlsafe_b64decode(b64).decode("utf-8")
+                            except:
+                                pass
                             
                         title_clean = html.unescape(re.sub(r'<[^>]+>', '', title).strip())
                         snippet = ""
