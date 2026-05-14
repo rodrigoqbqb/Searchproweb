@@ -1,1 +1,0 @@
-Procurarem = "allprivatekeys.com";"bitcointalk.org";"codepen.io";"developers.google.com";"gist.github.com";"gitea.com";"github.com";"keyhunters.ru";"learnmeabitcoin.com";"pastebin.com";"support.blockchain.com";"twitter.com";"www.joesandbox.com";"www.thebitcoinway.com";"www.youtube.com"
