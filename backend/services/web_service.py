@@ -67,6 +67,7 @@ class WebSearchService:
                             "name": title_clean,
                             "address": snippet + "...",
                             "website": link,
+                            "search_url": url,
                             "phone": self._extract_phone(snippet),
                             "source": "Web Hunter (Bing)"
                         })
@@ -106,6 +107,7 @@ class WebSearchService:
                             "name": title_clean,
                             "address": snippet_clean + "...",
                             "website": real_link,
+                            "search_url": url,
                             "phone": self._extract_phone(snippet),
                             "source": "Web Hunter (DuckDuckGo)"
                         })
