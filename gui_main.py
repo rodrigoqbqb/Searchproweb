@@ -433,10 +433,38 @@ class FastSearchApp(QMainWindow):
         path, _ = QFileDialog.getSaveFileName(self, "Exportar CSV", "", "CSV (*.csv)")
         if path:
             try:
+                import urllib.parse
+                
+                fieldnames = ["LOCALIDADE", "ENDERECO", "DISTANCIA_KM", "TELEFONE", "WEBSITE", "MAPS", "WAZE", "WEB_HUNTER_SOURCE", "FONTE"]
+                rows = []
+                for item in self.current_results:
+                    lat = item.get("latitude")
+                    lon = item.get("longitude")
+                    
+                    if lat is not None and lon is not None and item.get("distance_km", 9999) < 9999:
+                        gmaps_url = f"https://www.google.com/maps/search/?api=1&query={lat},{lon}"
+                        waze_url = f"https://waze.com/ul?ll={lat},{lon}&navigate=yes"
+                    else:
+                        query = urllib.parse.quote(f"{item['name']} {item.get('address', '')}")
+                        gmaps_url = f"https://www.google.com/maps/search/?api=1&query={query}"
+                        waze_url = f"https://waze.com/ul?q={query}&navigate=yes"
+                        
+                    rows.append({
+                        "LOCALIDADE": item.get("name", ""),
+                        "ENDERECO": item.get("address", ""),
+                        "DISTANCIA_KM": f"{item.get('distance_km', 9999.0):.2f}",
+                        "TELEFONE": item.get("phone", ""),
+                        "WEBSITE": item.get("website", ""),
+                        "MAPS": gmaps_url,
+                        "WAZE": waze_url,
+                        "WEB_HUNTER_SOURCE": item.get("search_url", ""),
+                        "FONTE": item.get("source", "")
+                    })
+                    
                 with open(path, 'w', newline='', encoding='utf-8-sig') as f:
-                    w = csv.DictWriter(f, fieldnames=self.current_results[0].keys(), delimiter=';')
+                    w = csv.DictWriter(f, fieldnames=fieldnames, delimiter=';')
                     w.writeheader()
-                    w.writerows(self.current_results)
+                    w.writerows(rows)
                 QMessageBox.information(self, "Sucesso", "CSV Exportado!")
             except Exception as e:
                 QMessageBox.critical(self, "Erro", str(e))

@@ -1,66 +1,67 @@
 # CanalQb SearchPRO Web 🚀
 
-CanalQb SearchPRO Web é um motor de busca híbrido de autoaprendizado. Ele integra dados do OpenStreetMap (OSM) com inteligência extraída da web (Web Hunter) para fornecer resultados precisos de pontos de interesse (POI) baseados no CEP do usuário. O grande diferencial do sistema é sua capacidade de **aprender novas etiquetas autonomamente** quando encontra termos desconhecidos, construindo uma base de conhecimento local.
+CanalQb SearchPRO Web é um motor de busca híbrido de autoaprendizado. Ele integra dados do OpenStreetMap (OSM) com inteligência extraída da web (Web Hunter) para fornecer resultados precisos de pontos de interesse (POI) baseados no CEP do usuário. O grande diferencial do sistema é sua capacidade de **aprender novas etiquetas autonomamente** quando encontra termos desconhecidos, construindo uma base de conhecimento local, e seu sistema avançado de Fallback que garante precisão na localização.
 
 ---
 
-## 📂 Estrutura do Projeto e Arquitetura
+## 🗺️ O Conceito do CEP e Localização (Master Fallback)
 
-O projeto é dividido em uma interface gráfica moderna (PyQt5) e um back-end de serviços assíncronos (Asyncio + Httpx).
+O sistema de busca funciona fundamentalmente a partir do CEP do usuário. O processo de geolocalização funciona assim:
+1. **Consulta Primária (ViaCEP & Nominatim):** O sistema converte o CEP num endereço (Rua, Cidade, Estado) e o Nominatim traduz esse endereço em Coordenadas Geográficas (Latitude e Longitude exatas).
+2. **Master CEP Fallback Inteligente:** Caso um CEP seja inválido, recém-criado ou muito específico (sem mapeamento GPS na base global), a inteligência recua automaticamente. O sistema substituirá os últimos 3 dígitos por `000` (buscando a central do bairro/região) e, se falhar, substituirá por `0000` (buscando o centro geográfico da cidade inteira). Isso garante que o motor de busca sempre tenha um raio geográfico para iniciar as medições de distância.
 
-### Raiz
-- **`gui_main.py`**
-  - **Função:** Ponto de entrada do sistema. Gerencia a Interface Gráfica (GUI) construída em PyQt5.
-  - **Lógica Principal:**
-    - Possui um input dinâmico de autocompletar que lê do banco de termos conhecidos.
-    - Utiliza **QThread (Worker)** para evitar que a interface congele durante a busca. Os resultados são emitidos via sinais (`pyqtSignal`) em formato de _stream_ (aparecem um a um).
-    - **Cálculo de Distância:** Implementa a fórmula de Haversine para calcular a distância em linha reta do CEP pesquisado até cada estabelecimento.
-    - **Ordenação:** Ordena a lista final por distância e envia os resultados "Sem Coordenada" (Web Hunter) para o final da lista (9999km).
+## 🔍 Como é realizada a Pesquisa do Termo?
 
-### `backend/core/` (Núcleo de Dados)
-- **`vault.py`**
-  - **Função:** Gerenciador de Banco de Dados SQLite (`vault.db`).
-  - **Lógica:** Opera em **WAL Mode** (`PRAGMA journal_mode=WAL`), o que permite leituras e escritas assíncronas concorrentes sem corromper o banco.
-  - **Tabela Principal (`etiquetas`):** Armazena o aprendizado ativo da inteligência. Exemplo: `termo: "mexicano" -> key: "amenity", value: "restaurant", fonte: "Active Learning"`.
+A busca é feita através de um funil híbrido otimizado para latência e descoberta ativa, executado na `SearchWorker`:
+1. **Banco de Dados (SQLite):** O aplicativo primeiro consulta sua própria memória (`vault.db`) para ver se já aprendeu as "etiquetas" daquele termo (Ex: `supermercado` = `shop=supermarket`).
+2. **Busca por Expressão (Regex):** Se o banco local falhar, ele faz uma varredura nas redondezas procurando estabelecimentos cujo nome inclua o termo em português ou inglês (ex: `name~"supermercado|supermarket"`).
+3. **Wide-Radius Discovery (Autoaprendizado):** Se nada for achado num raio de 5km, o `tag_discovery.py` entra no "Modo de Caça". Ele abre um raio brutal de 500km para achar QUALQUER lugar no país que tenha aquele nome. Quando acha, ele extrai a tag técnica do OSM e salva eternamente no seu banco de dados, para que a próxima pesquisa por aquele termo seja ultrarrápida.
+4. **Camada Web Hunter (Bing & DuckDuckGo):** Em paralelo, o aplicativo cruza os resultados com a Web. Caso o OpenStreetMap seja deficiente na região do CEP pesquisado, o Web Hunter raspa o HTML puro de motores de busca, contornando bloqueios anti-bot, extraindo descrições, títulos e gerando resultados extras que são encaixados no final da lista.
 
-- **`cache.py`**
-  - **Função:** Sistema de Cache em memória (Dicionário assíncrono).
-  - **Lógica:** Evita requisições repetidas para APIs externas num curto período. Por exemplo, se o usuário pesquisar o mesmo CEP duas vezes, o cache devolve as coordenadas do Nominatim sem bater na API novamente.
+## 🪪 Como funciona cada item do Card (ResultCard)?
 
-### `backend/services/` (Motores de Inteligência)
+Cada estabelecimento encontrado é renderizado numa caixa inteligente e responsiva:
+- **Título & Endereço (WordWrap):** Se adaptam verticalmente e de forma justificada (Word Wrap) para nunca cortar e não forçar o aparecimento de barras de rolagem.
+- **Distância (`📍 X.XX km`):** O cálculo Haversine mede a quilometragem linear perfeita do seu CEP até a porta da loja. Resultados Web Hunter não têm coordenadas, logo ganham `9999.00 km` e vão inteligentemente pro fim da fila.
+- **Botão Amarelo (Fonte Web Hunter):** Ao invés de uma marca d'água estática, se a origem foi de um buscador web, este botão guarda o **Link Oficial da Pesquisa**. Clicar nele abre no navegador exatamente a query do Bing/DuckDuckGo que achou aquele lugar.
+- **Botões GPS (Maps e Waze):**
+  - Se o local veio do OSM (possuindo Latitude e Longitude), clicar nestes botões abrirá os mapas cravados no **alfinete cirúrgico** (coordenadas brutas).
+  - Se o local veio pela Web Hunter (sem GPS), os botões enviarão o *Nome e Endereço* como texto via URL, forçando o Waze e Google Maps a procurarem e abrirem o estabelecimento localmente para o cliente.
+- **Botão Verde (Website):** Caso o card possua uma URL (seja via OSM ou links decodificados em Base64 através das proteções do Bing Tracker), este botão se responsabiliza por abrir a página oficial/destino final do negócio.
 
-- **`cep_service.py`** (Motor de Busca Híbrido)
-  - **Função:** Orquestra a busca completa por coordenadas e estabelecimentos.
-  - **Estratégia de Fallback (Camadas):**
-    1. **Banco de Dados:** Tenta usar tags (`key=value`) previamente aprendidas pelo `tag_discovery.py`.
-    2. **Busca por Nome (Regex):** Se as tags falharem, usa Regex (ex: `name~"mexicano|mexican"`) para achar locais no raio de 5km no OSM.
-    3. **Aprendizado (Hunt):** Se não achar nada, chama o `tag_discovery.py` para caçar novas tags por até 2 minutos.
-    4. **Web Hunter (Paralelo):** Paralelamente, faz scraping no Bing/DuckDuckGo para suprir locais não cadastrados no OSM.
-  - **Principais Variáveis:** `SEARCH_RADIUS` (5000 metros), `MAX_HUNT_TIME` (tempo limite do loop de descoberta).
+## 📊 O Botão de Exportar (CSV)
 
-- **`tag_discovery.py`** (Cérebro de Autoaprendizado)
-  - **Função:** Descobre quais tags do OpenStreetMap (ex: `cuisine=mexican`, `amenity=fast_food`) correspondem a um termo digitado pelo usuário.
-  - **Lógica de "Wide Radius":** Se um termo ("mexicano") retorna `0` resultados locais, este script aciona o OSM via Overpass em um **raio de 500km**. Ele procura por um estabelecimento que tenha o nome "mexicano" neste estado/país, extrai as tags técnicas (`amenity`, `shop`, etc.) dele e salva no banco de dados para ser usado na cidade do usuário.
-
-- **`web_service.py`** (Web Hunter)
-  - **Função:** Scraping Híbrido em Bing e DuckDuckGo (HTML).
-  - **Lógica:** 
-    - Foca em varrer resultados de buscas como `"mexicano" "09111780"`.
-    - Utiliza decodificação robusta (`html.unescape`) para corrigir acentuação (ex: `Gr&#225;tis` vira `Grátis`).
-    - Usa Regex complexo (`re.findall`) ao invés de classes CSS porque motores de busca mudam de estrutura de CSS frequentemente.
-    - Extrai telefone via regex padrão de (DD) XXXX-XXXX.
-
-- **`translator_service.py`**
-  - **Função:** Como o OpenStreetMap utiliza tags em inglês, este serviço traduz o termo do usuário (ex: "padaria" -> "bakery") para otimizar as queries regex e facilitar o Discovery num ambiente globalizado.
-
-- **`category.py` e `synonyms.py`**
-  - **Função:** Bases de dicionários estáticos. Atualmente servem primariamente para alimentar a lógica do auto-completar da Interface Gráfica, já que a descoberta foi delegada integralmente ao banco de dados pelo Active Learning.
+No final de cada busca, um botão com ícone amarelo 📄 fica disponível para salvar todos os dados numa planilha.
+- **O que ele exporta:** A planilha gerada obedece à rigorosa formatação de dados divididos por Ponto e Vírgula (`;`), garantindo abertura perfeita no Excel/Google Sheets. As colunas fixas estruturadas são:
+  - `LOCALIDADE`: Nome do estabelecimento.
+  - `ENDERECO`: Logradouro completo.
+  - `DISTANCIA_KM`: Raio a partir do CEP (em string com casa decimal 0.00).
+  - `TELEFONE`: Número identificado.
+  - `WEBSITE`: O destino oficial da loja na internet.
+  - `MAPS`: Um Link "Smart" já programado para jogar o cliente direto na Rota do Google Maps.
+  - `WAZE`: Um Link "Smart" já programado para rotear diretamente no Waze do Celular/Web.
+  - `WEB_HUNTER_SOURCE`: O rastro de qual URL de pesquisa originou o achado.
+  - `FONTE`: Se a extração ocorreu via 'OSM', 'Web Hunter (Bing)', ou 'Web Hunter (DuckDuckGo)'.
 
 ---
 
-## 🛠️ Tecnologias e API Utilizadas
+## 🛠️ Tecnologias e Soluções Arquiteturais Aplicadas
 
-1. **Overpass API (`overpass-api.de`):** Banco de dados global e comunitário de mapas. Utilizado para buscar `nodes`, `ways` e `relations`.
-2. **Nominatim / ViaCEP:** Utilizado para converter o número do CEP em Coordenadas Geográficas (Latitude e Longitude) que o Overpass possa entender (Radius Search).
-3. **Bing / DuckDuckGo:** Interfaces de scraping que formam a camada "Web Hunter", garantindo zero resultado vazio.
-4. **PyQt5:** Framewok robusto escolhido para renderização C++ visual do aplicativo, garantindo fluidez via Signals & Slots.
+O sistema é construído inteiramente em **Python 3** utilizando uma abordagem assíncrona orientada a eventos para garantir máxima performance de I/O, além de interfaces avançadas e persistência resiliente.
+
+### Inteligência e Raspagem de Dados
+- **Motor Híbrido OSM:** Integração pesada com a API do **Overpass / OpenStreetMap** e **Nominatim / ViaCEP** para varreduras de mapas vetoriais usando queries avançadas em formato JSON/Overpass QL.
+- **Scraping Anti-Bloqueio (Web Hunter):** Usa **`httpx`** (Assíncrono) para requisições em alta velocidade no Bing e DuckDuckGo, somado ao uso de rotação de **User-Agents** via módulo `random`.
+- **Decodificador Regex e HTML:** Em vez de depender de seletores CSS frágeis (BeautifulSoup), o motor usa a biblioteca interna `re` (Expressões Regulares) para rastrear nós de DOM profundos e o módulo `html` (`html.unescape`) para reconstruir entidades web corrompidas (ex: `Gr&#225;tis` -> `Grátis`).
+- **Base64 Payload Decoder:** Algoritmo de segurança implementado com a biblioteca `base64` para burlar os protetores de tracking de cliques da Microsoft (Bing `ck/a?!`), extraindo a URL oficial encapsulada dentro da querystring.
+- **Smart Distance Algorithm:** Utiliza trigonometria e cálculo geodésico (Fórmula de Haversine) implementado manualmente em Python puro (módulo `math`) para descobrir distâncias esféricas perfeitas no globo terrestre.
+
+### Concorrência e Interface Gráfica
+- **PyQt5 & QThread:** Interface gráfica moderna e desktop native. A lógica pesada da internet (HTTPX) roda em um thread separado e devolve os dados em formato *Stream* contínuo para o Thread Principal via `pyqtSignal`. Isso garante que a UI com animações e _Hover effects_ (CSS embutido) nunca "congele".
+- **Dynamic Layout Constraints:** Uso profundo de `QHBoxLayout`, `QVBoxLayout`, `QScrollArea`, políticas e margens (`QSizePolicy`) que permitem renderização do Word-Wrap, garantindo que a tela sempre caiba sem _scrollbars_ horizontais.
+- **Event Loop Assíncrono:** Instanciação modular do `asyncio.new_event_loop()` para envelopar código Thread-Blocking dentro das _Workers_ síncronas do PyQt5 de modo nativo.
+
+### Armazenamento e Performance
+- **SQLite3 (Modo WAL):** O banco local (`vault.db`) é modificado com `PRAGMA journal_mode=WAL` (Write-Ahead Logging), permitindo Leituras e Escritas Simultâneas — uma tecnologia de banco servidor aplicada em um banco local, para não gerar erros de travamento durante o *Active Learning*.
+- **Memory Cache Dinâmico:** Uma classe de cache (`cache.py`) armazena os CEPs e buscas já processadas dentro de um dicionário Python local, cortando tempos de espera de requisições web repetitivas a Zero.
+- **Formatação de I/O Segura:** Exportação de planilhas formatadas na biblioteca `csv` nativa, forçando o *encoding* `utf-8-sig` (Byte Order Mark), resolvendo bugs de acentuação para leitura imediata em qualquer versão do Microsoft Excel.
