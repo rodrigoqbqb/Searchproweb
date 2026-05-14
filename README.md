@@ -10,13 +10,14 @@ O sistema de busca funciona fundamentalmente a partir do CEP do usuário. O proc
 1. **Consulta Primária (ViaCEP & Nominatim):** O sistema converte o CEP num endereço (Rua, Cidade, Estado) e o Nominatim traduz esse endereço em Coordenadas Geográficas (Latitude e Longitude exatas).
 2. **Master CEP Fallback Inteligente:** Caso um CEP seja inválido, recém-criado ou muito específico (sem mapeamento GPS na base global), a inteligência recua automaticamente. O sistema substituirá os últimos 3 dígitos por `000` (buscando a central do bairro/região) e, se falhar, substituirá por `0000` (buscando o centro geográfico da cidade inteira). Isso garante que o motor de busca sempre tenha um raio geográfico para iniciar as medições de distância.
 
-## 🔍 Como é realizada a Pesquisa do Termo?
+## 🔍 Como é realizada a Pesquisa do Termo e Criação de Categorias?
 
-A busca é feita através de um funil híbrido otimizado para latência e descoberta ativa, executado na `SearchWorker`:
-1. **Banco de Dados (SQLite):** O aplicativo primeiro consulta sua própria memória (`vault.db`) para ver se já aprendeu as "etiquetas" daquele termo (Ex: `supermercado` = `shop=supermarket`).
-2. **Busca por Expressão (Regex):** Se o banco local falhar, ele faz uma varredura nas redondezas procurando estabelecimentos cujo nome inclua o termo em português ou inglês (ex: `name~"supermercado|supermarket"`).
-3. **Wide-Radius Discovery (Autoaprendizado):** Se nada for achado num raio de 5km, o `tag_discovery.py` entra no "Modo de Caça". Ele abre um raio brutal de 500km para achar QUALQUER lugar no país que tenha aquele nome. Quando acha, ele extrai a tag técnica do OSM e salva eternamente no seu banco de dados, para que a próxima pesquisa por aquele termo seja ultrarrápida.
-4. **Camada Web Hunter (Bing & DuckDuckGo):** Em paralelo, o aplicativo cruza os resultados com a Web. Caso o OpenStreetMap seja deficiente na região do CEP pesquisado, o Web Hunter raspa o HTML puro de motores de busca, contornando bloqueios anti-bot, extraindo descrições, títulos e gerando resultados extras que são encaixados no final da lista.
+A criação e busca de categorias são o coração da aplicação. O aplicativo não usa uma lista "dura" de categorias. Em vez disso, ele constrói conhecimento dinamicamente através do funil híbrido de autoaprendizado executado no `SearchWorker`:
+
+1. **Consulta Cérebro (SQLite `etiquetas`):** Ao buscar por `hamburgueria`, o aplicativo consulta primeiro sua tabela `etiquetas` (`SELECT tag_key, tag_value FROM etiquetas WHERE termo = 'hamburgueria'`). Se existir, ele usa as tags do OSM exatas (ex: `amenity=fast_food`).
+2. **Busca por Expressão (Regex):** Se o banco local falhar, ele faz uma varredura nas redondezas procurando estabelecimentos cujo nome inclua o termo em português ou traduzido pelo módulo interno para inglês (ex: `name~"hamburgueria|hamburger"`).
+3. **Wide-Radius Discovery (Criação da Categoria):** Se nada for achado num raio de 5km, o `tag_discovery.py` entra no "Modo de Caça". Ele abre um raio global de 500km via Overpass para achar QUALQUER lugar no país que tenha aquele nome. Quando acha, ele extrai a tag técnica do OSM (ex: `amenity=restaurant`) e **insere essa nova categoria no banco de dados**, validando e aprendendo para que a próxima pesquisa por aquele termo seja ultrarrápida (Cache Persistente).
+4. **Camada Web Hunter (Bing & DuckDuckGo):** Paralelamente ao OSM, o aplicativo cruza os resultados com a Web. Caso o OpenStreetMap não possua o lugar, o Web Hunter raspa o HTML puro de motores de busca, contornando bloqueios anti-bot e extraindo a URL oficial encapsulada (Base64 Decode) do Bing, devolvendo resultados extras que não existiam no mapa.
 
 ## 🪪 Como funciona cada item do Card (ResultCard)?
 
@@ -42,6 +43,37 @@ No final de cada busca, um botão com ícone amarelo 📄 fica disponível para 
   - `WAZE`: Um Link "Smart" já programado para rotear diretamente no Waze do Celular/Web.
   - `WEB_HUNTER_SOURCE`: O rastro de qual URL de pesquisa originou o achado.
   - `FONTE`: Se a extração ocorreu via 'OSM', 'Web Hunter (Bing)', ou 'Web Hunter (DuckDuckGo)'.
+
+---
+
+## 🗄️ Estrutura do Banco de Dados (`vault.db`)
+
+O banco de dados SQLite opera nativamente em `PRAGMA journal_mode=WAL` (Write-Ahead Logging), permitindo Leituras e Escritas Simultâneas — uma tecnologia de banco servidor aplicada localmente, para não gerar erros de travamento concorrente na Thread gráfica e na Thread Web. 
+
+A interação (inserção/consulta) ocorre via módulo `backend/core/vault.py`. As tabelas estruturadas são:
+
+1. **`etiquetas` (Cérebro Principal de Autoaprendizado):**
+   - `termo` (TEXT, PK): O nome genérico buscado pelo usuário (Ex: "padaria").
+   - `tag_key` (TEXT): A chave técnica da tabela oficial do OSM (Ex: "shop").
+   - `tag_value` (TEXT): O valor da chave técnica (Ex: "bakery").
+   - `fonte` (TEXT): O serviço responsável por aprender a tag (Ex: "Active Learning").
+   - `timestamp` (DATETIME): Data e hora do aprendizado.
+   - *Comportamento:* Quando a varredura ampla descobre as tags (Wide Radius), o `vault.py` realiza um `INSERT OR REPLACE INTO etiquetas`. 
+
+2. **`search_history` (Log de Metrificação):**
+   - `id` (INTEGER, PK): Índice autoincremental.
+   - `cep` (TEXT): O número geográfico pesquisado.
+   - `term` (TEXT): A palavra buscada.
+   - `results_count` (INTEGER): Quantos cartões foram achados e gerados naquela busca.
+   - `timestamp` (DATETIME): Data exata do término da busca.
+
+3. **`translations` (Tradução Estática de Termos):**
+   - `portuguese` (TEXT, PK): Palavra base (Ex: "mercado").
+   - `english` (TEXT): Tradução técnica (Ex: "market"), essencial para facilitar a procura de Nodes na rede global OpenStreetMap.
+   - `timestamp` (DATETIME): Registro da conversão.
+
+4. **`learned_categories` (Tabela Legado):**
+   - `term`, `tag_key`, `tag_value`, `confidence`: Base antiga do sistema de heurística que mapeava inferências probabilísticas de confiabilidade na extração.
 
 ---
 
