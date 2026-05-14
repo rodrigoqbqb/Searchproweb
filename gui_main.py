@@ -241,7 +241,7 @@ class FastSearchApp(QMainWindow):
         # Header
         header = QHBoxLayout()
         logo = QLabel()
-        logo.setPixmap(QPixmap("logo.jpg").scaled(50, 50, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        logo.setPixmap(QPixmap("logo.png").scaled(50, 50, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         header.addWidget(logo)
         
         title_box = QVBoxLayout()

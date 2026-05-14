@@ -38,24 +38,52 @@ async def get_cep_from_ip() -> Optional[str]:
 
 
 async def get_cords_from_cep(cep: str) -> Optional[CoordsUser]:
-    async def _fetch():
+    async def _fetch(current_cep: str) -> Optional[CoordsUser]:
         async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(f"https://viacep.com.br/ws/{cep}/json/")
+            resp = await client.get(f"https://viacep.com.br/ws/{current_cep}/json/")
             if resp.status_code != 200 or resp.json().get("erro"):
                 return None
             addr = resp.json()
-        full_addr = f"{addr.get('logradouro')}, {addr.get('localidade')}, {addr.get('uf')}, Brasil"
+            
+        # Se for um CEP master, logradouro vem vazio. Protege contra string 'None'
+        logra = addr.get('logradouro', '')
+        loc = addr.get('localidade', '')
+        uf = addr.get('uf', '')
+        
+        full_addr = f"{logra}, {loc}, {uf}, Brasil" if logra else f"{loc}, {uf}, Brasil"
         params = {"q": full_addr, "format": "json", "limit": 1}
+        
         async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(
-                "https://nominatim.openstreetmap.org/search",
-                params=params, headers=HEADERS
-            )
+            resp = await client.get("https://nominatim.openstreetmap.org/search", params=params, headers=HEADERS)
             if resp.status_code != 200 or not resp.json():
                 return None
             data = resp.json()
+            
         return CoordsUser(latitude=data[0]["lat"], longitude=data[0]["lon"])
-    return await cache.get_or_fetch("coords", cep, _fetch)
+
+    # Tentativa 1: CEP Original
+    result = await cache.get_or_fetch("coords", cep, lambda: _fetch(cep))
+    if result:
+        return result
+        
+    # Tentativa 2: CEP Master (+/- cidade/bairro genérico final 000)
+    cep_master_1 = cep[:-3] + "000"
+    if cep_master_1 != cep:
+        print(f"DEBUG: [CEP] Original {cep} falhou. Tentando Master {cep_master_1}...")
+        result = await cache.get_or_fetch("coords", cep_master_1, lambda: _fetch(cep_master_1))
+        if result:
+            return result
+            
+    # Tentativa 3: CEP Master Amplo (final 0000)
+    cep_master_2 = cep[:-4] + "0000"
+    if cep_master_2 != cep_master_1:
+        print(f"DEBUG: [CEP] Master {cep_master_1} falhou. Tentando Master Amplo {cep_master_2}...")
+        result = await cache.get_or_fetch("coords", cep_master_2, lambda: _fetch(cep_master_2))
+        if result:
+            return result
+
+    print(f"DEBUG: [CEP ERROR] Impossível encontrar coordenadas para o CEP {cep} e seus equivalentes Master.")
+    return None
 
 
 async def _osm_query(query: str) -> list:
