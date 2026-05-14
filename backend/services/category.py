@@ -1,50 +1,173 @@
-
 CATEGORY_MAP = {
-
     # RELIGIÃO
-    "igreja": {
-        "key": "amenity",
-        "value": "place_of_worship"
-    },
-
-    "cemiterio": {
-        "key": "landuse",
-        "value": "cemetery"
-    },
+    "igreja": {"key": "amenity", "value": "place_of_worship"},
+    "cemiterio": {"key": "landuse", "value": "cemetery"},
+    "templo": {"key": "amenity", "value": "place_of_worship"},
 
     # MERCADOS / COMÉRCIO
-    "mercado": {
-        "key": "shop",
-        "value": "supermarket"
-    },
+    "mercado": {"key": "shop", "value": "supermarket"},
+    "supermercado": {"key": "shop", "value": "supermarket"},
+    "atacado": {"key": "shop", "value": "wholesale"},
+    "padaria": {"key": "shop", "value": "bakery"},
+    "acougue": {"key": "shop", "value": "butcher"},
+    "hortifruti": {"key": "shop", "value": "greengrocer"},
+    "conveniencia": {"key": "shop", "value": "convenience"},
+    "shopping": {"key": "shop", "value": "mall"},
+    "loja": {"key": "shop", "value": "variety_store"},
+    "emporio": {"key": "shop", "value": "convenience"},
+    "quitanda": {"key": "shop", "value": "greengrocer"},
+    "deposito": {"key": "shop", "value": "wholesale"},
 
-    "atacado": {
-        "key": "shop",
-        "value": "wholesale"
-    },
+    # TRANSPORTE (Otimizado para o pedido do usuário)
+    "onibus": {"key": "highway", "value": "bus_stop"},
+    "onibus": {"key": "highway", "value": "bus_stop"},
+    "bus": {"key": "highway", "value": "bus_stop"},
+    "ponto": {"key": "highway", "value": "bus_stop"},
+    "parada": {"key": "highway", "value": "bus_stop"},
+    "terminal": {"key": "amenity", "value": "bus_station"},
+    "rodoviaria": {"key": "amenity", "value": "bus_station"},
+    "trem": {"key": "railway", "value": "station"},
+    "metro": {"key": "railway", "value": "station"},
 
-    "padaria": {
-        "key": "shop",
-        "value": "bakery"
-    },
+    # CARROS / VEÍCULOS (Corrigido!)
+    "carro": {"key": "shop", "value": "car_repair"},
+    "carros": {"key": "shop", "value": "car"},
+    "veiculos": {"key": "shop", "value": "car"},
+    "mecanica": {"key": "shop", "value": "car_repair"},
+    "mecânica": {"key": "shop", "value": "car_repair"},
+    "oficina": {"key": "shop", "value": "car_repair"},
 
-    "acougue": {
-        "key": "shop",
-        "value": "butcher"
-    },
+    "concessionaria": {"key": "shop", "value": "car"},
+    "revenda": {"key": "shop", "value": "car"},
+    "moto": {"key": "shop", "value": "motorcycle"},
+    "motocicleta": {"key": "shop", "value": "motorcycle"},
+    "posto": {"key": "amenity", "value": "fuel"},
+    "combustivel": {"key": "amenity", "value": "fuel"},
+    "gasolina": {"key": "amenity", "value": "fuel"},
+    "etanol": {"key": "amenity", "value": "fuel"},
+    "auto": {"key": "shop", "value": "car"},
+    "automoveis": {"key": "shop", "value": "car"},
+    "pneu": {"key": "shop", "value": "tyres"},
 
-    "hortifruti": {
-        "key": "shop",
-        "value": "greengrocer"
-    },
+    # ELETRODOMÉSTICOS / TECNOLOGIA
+    "geladeira": {"key": "shop", "value": "appliance"},
+    "refrigerador": {"key": "shop", "value": "appliance"},
+    "eletrodomestico": {"key": "shop", "value": "appliance"},
+    "eletro": {"key": "shop", "value": "electronics"},
+    "assistência técnica": {"key": "shop", "value": "computer"},
+    "assistencia": {"key": "shop", "value": "computer"},
+    "celular": {"key": "shop", "value": "mobile_phone"},
+    "telefone": {"key": "shop", "value": "mobile_phone"},
+    "informatica": {"key": "shop", "value": "computer"},
+    "informatica": {"key": "shop", "value": "electronics"},
+    "tecnologia": {"key": "shop", "value": "electronics"},
+    "games": {"key": "shop", "value": "games"},
+    "informatica": {"key": "shop", "value": "electronics"},
 
-    "conveniencia": {
-        "key": "shop",
-        "value": "convenience"
-    },
+    # EMPREGO E SERVIÇOS
+    "emprego": {"key": "amenity", "value": "employment_agency"},
+    "vaga": {"key": "amenity", "value": "employment_agency"},
+    "rh": {"key": "office", "value": "employment_agency"},
+    "agencia": {"key": "office", "value": "employment_agency"},
 
-    "shopping": {
-        "key": "shop",
-        "value": "mall"
-    },
+    # SAÚDE
+    "farmacia": {"key": "amenity", "value": "pharmacy"},
+    "farmácia": {"key": "amenity", "value": "pharmacy"},
+    "drogaria": {"key": "amenity", "value": "pharmacy"},
+    "hospital": {"key": "amenity", "value": "hospital"},
+    "posto de saude": {"key": "amenity", "value": "clinic"},
+    "ubs": {"key": "amenity", "value": "clinic"},
+    "laboratorio": {"key": "amenity", "value": "doctors"},
+    "dentista": {"key": "amenity", "value": "dentist"},
+    "medico": {"key": "amenity", "value": "doctors"},
+    "clinica": {"key": "amenity", "value": "clinic"},
+    "veterinario": {"key": "amenity", "value": "veterinary"},
+    "pets": {"key": "shop", "value": "pet"},
+
+    # ALIMENTAÇÃO
+    "restaurante": {"key": "amenity", "value": "restaurant"},
+    "lanchonete": {"key": "amenity", "value": "fast_food"},
+    "lanche": {"key": "amenity", "value": "fast_food"},
+    "pizzaria": {"key": "amenity", "value": "restaurant"},
+    "pizza": {"key": "amenity", "value": "restaurant"},
+    "bar": {"key": "amenity", "value": "bar"},
+    "boteco": {"key": "amenity", "value": "bar"},
+    "cafe": {"key": "amenity", "value": "cafe"},
+    "sorvete": {"key": "shop", "value": "ice_cream"},
+    "acai": {"key": "amenity", "value": "ice_cream"},
+    "comida": {"key": "amenity", "value": "restaurant"},
+    "refeicao": {"key": "amenity", "value": "restaurant"},
+    "jantar": {"key": "amenity", "value": "restaurant"},
+    "almoco": {"key": "amenity", "value": "restaurant"},
+    "churrasco": {"key": "amenity", "value": "restaurant"},
+    "mexicano": {"key": "amenity", "value": "restaurant"},
+    "mexicana": {"key": "amenity", "value": "restaurant"},
+    "japones": {"key": "amenity", "value": "restaurant"},
+    "japonesa": {"key": "amenity", "value": "restaurant"},
+    "italiano": {"key": "amenity", "value": "restaurant"},
+    "chines": {"key": "amenity", "value": "restaurant"},
+
+
+    # BELEZA E CUIDADO
+    "barbearia": {"key": "shop", "value": "hairdresser"},
+    "cabelo": {"key": "shop", "value": "hairdresser"},
+    "salao": {"key": "shop", "value": "hairdresser"},
+    "estetica": {"key": "shop", "value": "beauty"},
+    "manicure": {"key": "shop", "value": "beauty"},
+    "petshop": {"key": "shop", "value": "pet"},
+
+    # PRODUTOS ESPECÍFICOS (Mapeamento Semântico)
+    "blusa": {"key": "shop", "value": "clothes"},
+    "vestido": {"key": "shop", "value": "clothes"},
+    "camisa": {"key": "shop", "value": "clothes"},
+    "roupa": {"key": "shop", "value": "clothes"},
+    "sapato": {"key": "shop", "value": "shoes"},
+    "calcado": {"key": "shop", "value": "shoes"},
+
+
+    # FITNESS E LAZER
+    "academia": {"key": "leisure", "value": "fitness_centre"},
+    "musculacao": {"key": "leisure", "value": "fitness_centre"},
+    "crossfit": {"key": "leisure", "value": "fitness_centre"},
+    "yoga": {"key": "leisure", "value": "fitness_centre"},
+    "piscina": {"key": "leisure", "value": "swimming_pool"},
+    "parque": {"key": "leisure", "value": "park"},
+    "cinema": {"key": "amenity", "value": "cinema"},
+    "teatro": {"key": "amenity", "value": "theatre"},
+    "clube": {"key": "leisure", "value": "sports_centre"},
+    "futebol": {"key": "leisure", "value": "pitch"},
+
+    # SERVIÇOS DIVERSOS
+    "banco": {"key": "amenity", "value": "bank"},
+    "caixa": {"key": "amenity", "value": "atm"},
+    "atm": {"key": "amenity", "value": "atm"},
+    "correios": {"key": "amenity", "value": "post_office"},
+    "cartorio": {"key": "office", "value": "government"},
+    "delegacia": {"key": "amenity", "value": "police"},
+    "bombeiro": {"key": "amenity", "value": "fire_station"},
+    "samu": {"key": "amenity", "value": "hospital"},
+    "suporte": {"key": "shop", "value": "computer"},
+    "chaveiro": {"key": "shop", "value": "locksmith"},
+    "vidraceiro": {"key": "shop", "value": "glaziery"},
+
+    # CONSTRUÇÃO E LAR
+    "construcao": {"key": "shop", "value": "doityourself"},
+    "materiais": {"key": "shop", "value": "doityourself"},
+    "madeireira": {"key": "shop", "value": "doityourself"},
+    "ferragem": {"key": "shop", "value": "hardware"},
+    "tinturaria": {"key": "shop", "value": "laundry"},
+    "lavanderia": {"key": "amenity", "value": "laundry"},
+    "moveis": {"key": "shop", "value": "furniture"},
+    "colchoes": {"key": "shop", "value": "bed"},
+    "decoracao": {"key": "shop", "value": "houseware"},
+    "piso": {"key": "shop", "value": "flooring"},
+
+    # EDUCACAO
+    "escola": {"key": "amenity", "value": "school"},
+    "colegio": {"key": "amenity", "value": "school"},
+    "universidade": {"key": "amenity", "value": "university"},
+    "faculdade": {"key": "amenity", "value": "university"},
+    "livraria": {"key": "shop", "value": "books"},
+    "papelaria": {"key": "shop", "value": "stationery"},
+    "curso": {"key": "amenity", "value": "college"},
 }

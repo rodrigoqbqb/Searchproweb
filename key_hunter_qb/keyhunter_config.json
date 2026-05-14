@@ -1,0 +1,8 @@
+{
+    "low_memory_mode": true,
+    "max_threads": 2,
+    "scan_limit_kb": 1024,
+    "spider_depth": 1,
+    "refresh_hz": 1,
+    "infinite_loop": true
+}
