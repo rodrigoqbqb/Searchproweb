@@ -84,19 +84,23 @@ class SearchWorker(threading.Thread):
             asyncio.set_event_loop(loop)
             
             coords = loop.run_until_complete(get_cords_from_cep(self.cep))
-            if not coords or not self._is_running:
-                if not coords: self.signals.error.emit(f"CEP {self.cep} inválido.")
+            if not self._is_running: return
+            
+            if not coords:
+                self.signals.error.emit(f"CEP {self.cep} inválido.")
                 return
 
             # Busca otimizada (parallel + cache + synonyms + Web Hunter)
             results = loop.run_until_complete(search_nearby_stores(
                 coords.latitude, coords.longitude, self.search_term, self.cep
             ))
+            
+            if not self._is_running: return
 
             
             processed = []
             for store in results:
-                if not self._is_running: break
+                if not self._is_running: return
                 lat = store.get("latitude")
                 lon = store.get("longitude")
                 if lat is not None and lon is not None:
@@ -114,12 +118,15 @@ class SearchWorker(threading.Thread):
                 self.signals.progress.emit(store)  # Stream
 
             
+            if not self._is_running: return
+            
             processed.sort(key=lambda x: x["distance_km"])
             log_search(self.cep, self.search_term, len(processed))
             self.signals.finished.emit(processed)
             loop.close()
         except Exception as e:
-            self.signals.error.emit(str(e))
+            if self._is_running:
+                self.signals.error.emit(str(e))
             print(f"\n[ERRO WORKER]: {e}")
             traceback.print_exc()
 
@@ -336,9 +343,7 @@ class FastSearchApp(QMainWindow):
         threading.Thread(target=_detect, daemon=True).start()
 
     def handle_search_toggle(self):
-
-
-        if self.worker and self.worker.is_alive():
+        if "Parar" in self.search_btn.text():
             self.stop_search()
         else:
             self.start_search()
