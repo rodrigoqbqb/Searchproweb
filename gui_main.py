@@ -152,19 +152,51 @@ class ResultCard(QFrame):
             phone.setObjectName("CardInfo")
             layout.addWidget(phone)
             
-        bottom = QHBoxLayout()
+        import urllib.parse
+        
+        # GPS Buttons Layout
+        gps_layout = QHBoxLayout()
         dist = QLabel(f"📍 {data['distance_km']:.2f} km")
         dist.setObjectName("CardDistance")
-        bottom.addWidget(dist)
+        gps_layout.addWidget(dist)
+        
+        gps_layout.addStretch()
+        
+        # URL Logic
+        lat = data.get("latitude")
+        lon = data.get("longitude")
+        
+        if lat is not None and lon is not None and data.get("distance_km", 9999) < 9999:
+            gmaps_url = f"https://www.google.com/maps/search/?api=1&query={lat},{lon}"
+            waze_url = f"https://waze.com/ul?ll={lat},{lon}&navigate=yes"
+        else:
+            query = urllib.parse.quote(f"{data['name']} {data.get('address', '')}")
+            gmaps_url = f"https://www.google.com/maps/search/?api=1&query={query}"
+            waze_url = f"https://waze.com/ul?q={query}&navigate=yes"
+            
+        maps_btn = QPushButton("Maps")
+        maps_btn.setObjectName("GpsBtn")
+        maps_btn.setCursor(Qt.PointingHandCursor)
+        maps_btn.setStyleSheet("background-color: #4285F4; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 10px;")
+        maps_btn.clicked.connect(lambda _, url=gmaps_url: webbrowser.open(url))
+        gps_layout.addWidget(maps_btn)
+        
+        waze_btn = QPushButton("Waze")
+        waze_btn.setObjectName("GpsBtn")
+        waze_btn.setCursor(Qt.PointingHandCursor)
+        waze_btn.setStyleSheet("background-color: #33ccff; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 10px;")
+        waze_btn.clicked.connect(lambda _, url=waze_url: webbrowser.open(url))
+        gps_layout.addWidget(waze_btn)
         
         if data.get("website"):
-            web = QPushButton("Visitar Website")
+            web = QPushButton("Website")
             web.setObjectName("WebBtn")
             web.setCursor(Qt.PointingHandCursor)
-            web.clicked.connect(lambda: webbrowser.open(data["website"]))
-            bottom.addStretch()
-            bottom.addWidget(web)
-        layout.addLayout(bottom)
+            web.setStyleSheet("background-color: #444; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 10px;")
+            web.clicked.connect(lambda _, url=data["website"]: webbrowser.open(url))
+            gps_layout.addWidget(web)
+            
+        layout.addLayout(gps_layout)
         self.setLayout(layout)
         
         shadow = QGraphicsDropShadowEffect()
