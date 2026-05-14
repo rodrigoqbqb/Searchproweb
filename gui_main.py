@@ -10,7 +10,7 @@ from datetime import datetime
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
     QLineEdit, QPushButton, QLabel, QScrollArea, QFrame, QGraphicsDropShadowEffect,
-    QFileDialog, QMessageBox, QCompleter
+    QFileDialog, QMessageBox, QCompleter, QSizePolicy
 )
 from PyQt5.QtCore import Qt, pyqtSignal, QObject, QSize, QTimer
 from PyQt5.QtGui import QIcon, QFont, QPixmap, QColor
@@ -48,15 +48,15 @@ QPushButton#ExportBtn {
 }
 QPushButton#ExportBtn:hover { background-color: #ffc107; color: #000; }
 QFrame#ResultCard {
-    background-color: #1e1e1e; border-radius: 12px; padding: 15px;
-    margin-bottom: 12px; border: 1px solid #333;
+    background-color: #1e1e1e; border-radius: 10px; padding: 12px;
+    margin-bottom: 10px; border: 1px solid #333;
 }
-QLabel#CardTitle { color: #28a745; font-size: 18px; font-weight: bold; }
-QLabel#CardInfo { color: #aaaaaa; font-size: 13px; }
-QLabel#CardDistance { color: #ffc107; font-size: 14px; font-weight: bold; }
+QLabel#CardTitle { color: #28a745; font-size: 15px; font-weight: bold; }
+QLabel#CardInfo { color: #aaaaaa; font-size: 11px; margin-top: 2px; }
+QLabel#CardDistance { color: #ffc107; font-size: 12px; font-weight: bold; }
 QPushButton#WebBtn {
     background-color: #333; color: #28a745; border: 1px solid #28a745;
-    border-radius: 4px; padding: 5px; font-size: 11px;
+    border-radius: 4px; padding: 4px; font-size: 10px;
 }
 QScrollBar:vertical { border: none; background: #121212; width: 8px; }
 QScrollBar::handle:vertical { background: #333; border-radius: 4px; }
@@ -136,10 +136,13 @@ class ResultCard(QFrame):
         super().__init__()
         self.setObjectName("ResultCard")
         layout = QVBoxLayout()
+        layout.setSpacing(4)
         title_layout = QHBoxLayout()
+        title_layout.setAlignment(Qt.AlignTop)
         title = QLabel(data["name"])
         title.setObjectName("CardTitle")
         title.setWordWrap(True)
+        title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
         title_layout.addWidget(title)
         
         source_text = data.get("source", "OSM")
@@ -161,12 +164,14 @@ class ResultCard(QFrame):
             addr = QLabel(f"🏠 {data['address']}")
             addr.setObjectName("CardInfo")
             addr.setWordWrap(True)
+            addr.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
             layout.addWidget(addr)
             
         if data.get("phone"):
             phone = QLabel(f"📞 {data['phone']}")
             phone.setObjectName("CardInfo")
             phone.setWordWrap(True)
+            phone.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
             layout.addWidget(phone)
             
         import urllib.parse
