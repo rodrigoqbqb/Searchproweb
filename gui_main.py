@@ -135,8 +135,19 @@ class ResultCard(QFrame):
         title.setWordWrap(True)
         title_layout.addWidget(title)
         
-        source_badge = QLabel(data.get("source", "OSM"))
-        source_badge.setStyleSheet("background: #333; color: #aaa; border-radius: 4px; padding: 2px 6px; font-size: 10px;")
+        source_text = data.get("source", "OSM")
+        if data.get("website"):
+            source_badge = QPushButton(source_text)
+            source_badge.setCursor(Qt.PointingHandCursor)
+            if "Web" in source_text:
+                source_badge.setStyleSheet("background: #ffc107; color: #000; border-radius: 4px; padding: 3px 8px; font-size: 10px; font-weight: bold;")
+            else:
+                source_badge.setStyleSheet("background: #444; color: #fff; border-radius: 4px; padding: 3px 8px; font-size: 10px; font-weight: bold;")
+            source_badge.clicked.connect(lambda _, url=data["website"]: webbrowser.open(url))
+        else:
+            source_badge = QLabel(source_text)
+            source_badge.setStyleSheet("background: #333; color: #aaa; border-radius: 4px; padding: 2px 6px; font-size: 10px;")
+        
         title_layout.addWidget(source_badge)
         title_layout.addStretch()
         layout.addLayout(title_layout)
