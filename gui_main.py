@@ -156,11 +156,13 @@ class ResultCard(QFrame):
         if data.get("address"):
             addr = QLabel(f"🏠 {data['address']}")
             addr.setObjectName("CardInfo")
+            addr.setWordWrap(True)
             layout.addWidget(addr)
             
         if data.get("phone"):
             phone = QLabel(f"📞 {data['phone']}")
             phone.setObjectName("CardInfo")
+            phone.setWordWrap(True)
             layout.addWidget(phone)
             
         import urllib.parse
@@ -309,6 +311,7 @@ class FastSearchApp(QMainWindow):
         # Results area
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.scroll_c = QWidget()
         self.scroll_c.setObjectName("ScrollContent")
         self.results_layout = QVBoxLayout(self.scroll_c)

@@ -3,6 +3,7 @@ import asyncio
 import re
 import random
 import html
+import urllib.parse
 from typing import List, Dict
 
 class WebSearchService:
@@ -49,6 +50,13 @@ class WebSearchService:
                         # Filtra links internos do Bing
                         if "bing.com" in link and "search" in link:
                             continue
+                            
+                        # Limpa URLs incompletas do Bing
+                        if link.startswith("//"):
+                            link = "https:" + link
+                        elif link.startswith("/"):
+                            link = "https://www.bing.com" + link
+                            
                         title_clean = html.unescape(re.sub(r'<[^>]+>', '', title).strip())
                         snippet = ""
                         if i < len(snippets):
@@ -84,11 +92,20 @@ class WebSearchService:
                         snippet = snippets[i] if i < len(snippets) else ""
                         title_clean = html.unescape(title.strip())
                         snippet_clean = html.unescape(snippet.strip()[:120])
+                        
+                        # Extrai a URL real de redirecionamentos do DuckDuckGo
+                        parsed = urllib.parse.urlparse(link)
+                        qs = urllib.parse.parse_qs(parsed.query)
+                        real_link = qs.get("uddg", [link])[0]
+                        
+                        if real_link.startswith("//"):
+                            real_link = "https:" + real_link
+                            
                         results.append({
-                            "id": f"ddg_{hash(link)}",
+                            "id": f"ddg_{hash(real_link)}",
                             "name": title_clean,
                             "address": snippet_clean + "...",
-                            "website": link,
+                            "website": real_link,
                             "phone": self._extract_phone(snippet),
                             "source": "Web Hunter (DuckDuckGo)"
                         })
